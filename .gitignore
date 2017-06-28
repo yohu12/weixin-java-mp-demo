@@ -1,9 +1,7 @@
-*.pmd
 /target/
 /.settings/
-*.classpath
 *.project
-.idea/
+*.classpath
+application.yml
+/.idea/
 *.iml
-classes/
-build/
