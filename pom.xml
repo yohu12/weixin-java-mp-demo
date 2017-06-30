@@ -22,6 +22,7 @@
     </properties>
 
     <modules>
+        <module>mp-demo-common</module>
         <module>springboot-demo</module>
         <module>springmvc-demo</module>
         <module>multiple-mp-demo</module>
