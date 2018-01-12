@@ -1,6 +1,7 @@
 package com.github.binarywang.demo.spring.handler;
 
 import com.github.binarywang.demo.spring.builder.TextBuilder;
+import com.github.binarywang.demo.spring.dto.Temperature;
 import com.github.binarywang.demo.spring.service.WeixinService;
 import me.chanjar.weixin.common.api.WxConsts;
 import me.chanjar.weixin.common.session.WxSessionManager;
@@ -35,10 +36,14 @@ public class MsgHandler extends AbstractHandler {
       return WxMpXmlOutMessage
           .TRANSFER_CUSTOMER_SERVICE().fromUser(wxMessage.getToUser())
           .toUser(wxMessage.getFromUser()).build();
+    }else if(StringUtils.equals(wxMessage.getContent(),"温度")){
+      String content = "当前温度："+ Temperature.tempValue+"度";
+      return new TextBuilder().build(content, wxMessage, weixinService);
     }
 
     //TODO 组装回复消息
-    String content = "回复信息内容";
+//    String content = "回复信息内容";
+    String content = "请输入[温度]获取当前温度";
     return new TextBuilder().build(content, wxMessage, weixinService);
 
   }
