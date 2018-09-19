@@ -1,8 +1,11 @@
 package com.github.binarywang.demo.spring.service;
 
+import com.github.binarywang.demo.spring.beans.Gps;
+import com.github.binarywang.demo.spring.dao.GpsRecordDao;
 import com.github.binarywang.demo.spring.dto.Temperature;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,8 +17,11 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 @Service
 public class MqttClientService {
-    public static final String HOST = "tcp://huyong.imwork.net:41883";
+    public static final String HOST = "tcp://pi-home.cn:61613";
     public static final String TOPIC = "temperature";
+    public static final String TOPIC_2 = "light";
+    public static final String TOPIC_GPS = "GPS_MSG";
+    public static final String TOPIC_GPS_RSP = "GPS_MSG_RSP";
     private static final String clientid = "wechat";
     private MqttClient client;
     private MqttConnectOptions options;
@@ -23,9 +29,16 @@ public class MqttClientService {
     private String passWord = "password";
 
     private ScheduledExecutorService scheduler;
+    public boolean wait = false;
+    public String response;
 
+    @Autowired
+    GpsRecordDao recordDao;
+
+    @Autowired
+    WeixinService weixinService;
     public MqttClientService() {
-        start();
+//        start();
     }
 
     public void start() {
@@ -55,7 +68,33 @@ public class MqttClientService {
                 public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
                     String msgContent = new String(mqttMessage.getPayload());
 //                    System.out.println("收到的消息：" + msgContent);
-                    Temperature.tempValue = msgContent;
+                    if (s == null) return;
+                    response = msgContent;
+                    if (s.equals(TOPIC)) {
+                        Temperature.tempValue = msgContent;
+                    } else if (s.equals(TOPIC_2)) {
+                        Temperature.lightValue = msgContent;
+                    } else if (s.equals(TOPIC_GPS_RSP)) {
+                        //收到消息处理逻辑
+                    } else if (s.equals(TOPIC_GPS)) {
+                        Temperature.gpsValue = msgContent;
+                        String[] strs = msgContent.split(",");
+                        System.out.println("当前位置：" + msgContent);
+//                        Gps gps = (Gps) JSON.parse(msgContent);
+//                        Gps gps = JSON.parseObject(msgContent, new TypeReference<Gps>() {
+//                        });
+//                        System.out.println("当前位置：lat:" + gps.getLat() + " lon:" + gps.getLon());
+                        Gps gps = new Gps();
+                        gps.setLon(strs[0]);
+                        gps.setLat(strs[1]);
+                        if (strs.length ==3){
+                            gps.setStartFlag(1);
+                        }else {
+                            gps.setStartFlag(0);
+                        }
+                        recordDao.insert(gps);
+                    }
+
 //                    String content = "当前温度：" + Temperature.tempValue + "度";
 //                    System.out.println(content);
                 }
@@ -71,18 +110,34 @@ public class MqttClientService {
 
             client.connect(options);
             //订阅消息
-            int[] Qos = {1};
-            String[] topic1 = {TOPIC};
-            client.subscribe(topic1, Qos);
-
+            int[] Qos = {1, 1, 1};
+//            String[] topic1 = {TOPIC, TOPIC_2};
+//            client.subscribe(topic1, Qos);
+            //订阅消息
+            String[] topicGPS = {TOPIC, TOPIC_GPS, TOPIC_GPS_RSP};
+            client.subscribe(topicGPS, Qos);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    public void publish(String topic, String msg) {
+        wait = true;
+        MqttMessage mqttMessage = new MqttMessage();
+        mqttMessage.setPayload(msg.getBytes());
+        mqttMessage.setRetained(false);
+        mqttMessage.setQos(1);
+        try {
+            client.publish(topic, mqttMessage);
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) throws MqttException {
         String v = "10.75";
+        MqttClientService server = new MqttClientService();
+        server.start();
         System.out.println(Float.parseFloat(v));
     }
 }

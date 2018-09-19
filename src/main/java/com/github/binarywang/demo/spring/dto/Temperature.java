@@ -6,4 +6,6 @@ package com.github.binarywang.demo.spring.dto;
  */
 public class Temperature {
     public static volatile String tempValue = "0.0";
+    public static volatile String lightValue = "0";
+    public static volatile String gpsValue = "0";
 }
